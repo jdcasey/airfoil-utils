@@ -31,6 +31,7 @@
 
 import os
 import sys
+import re
 
 if len(sys.argv) != 3:
 	print "Usage: %s <airfoil-dat-file> <svg-file>" % sys.argv[0]
@@ -58,18 +59,20 @@ with open(DAT) as f:
 	# For each line in the file, parse out a X, Y coordinate, amplified by the FACTOR
 	# and translated to the XLATE, YLATE offsets.
 	# Store each X,Y coordinate as a list of floats, in case we have to do further massaging.
-	for line in f:
-		line = line.lstrip().rstrip()
-		if count > 3:
-			if len(line) < 3:
-				surfaces.append(current_surface)
-				current_surface = []
-			else:
-				xy = [float(i) for i in line.split(' ')]
-				# print xy
-				if len(xy) > 1:
-					current_surface.append((XLATE + FACTOR * float(xy[0]), YLATE -(FACTOR * float(xy[1]))))
-		count +=1
+	lines = [l.strip() for l in f.readlines()]
+	for line in lines[2:]:
+		if len(line) < 3:
+			surfaces.append(current_surface)
+			current_surface = []
+		else:
+			try:
+				xy = [float(i) for i in re.split("\s*", line)]
+			except Exception as e:
+				print("Problem decoding line \"%s\"" % line)
+				raise e
+			# print xy
+			if len(xy) > 1:
+				current_surface.append((XLATE + FACTOR * float(xy[0]), YLATE -(FACTOR * float(xy[1]))))
 
 # Cleanup; add the last coordinate set we were working on to the list of coordinate sets.
 surfaces.append(current_surface)
