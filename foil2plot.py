@@ -32,27 +32,50 @@
 import os
 import sys
 import matplotlib.pyplot as plt
+import argparse
+import requests
 
-if len(sys.argv) != 2:
-	print "Usage: %s <airfoil-dat-file>" % sys.argv[0]
-	exit(1)
+UIUC_URL_FMT='http://m-selig.ae.illinois.edu/ads/coord/%s'
 
-DAT=sys.argv[1]
+parser = argparse.ArgumentParser()
+parser.add_argument("DAT", help="DAT file or DAT name (if using UIUC download)")
+parser.add_argument("-u", "--url", help="Download the specified DAT name from the UIUC Airfoil Database", action="store_true")
+
+args = parser.parse_args()
+
+datfile=args.DAT
+
 Y_FACTOR = 1
 X_FACTOR = 1
 
 count = 0
 xs = []
 ys = []
-with open(DAT) as f:
-	for line in f:
-		if count > 3 and len(line) > 3:
-			xy = [float(i) for i in line.lstrip().rstrip().split(' ')]
-			print xy
-			if len(xy) > 1:
-				xs.append(X_FACTOR * float(xy[0]))
-				ys.append(Y_FACTOR * float(xy[1]))
-		count +=1
+
+if args.url:
+    if not datfile.endswith(".dat"):
+        datfile = datfile + ".dat"
+
+    url = UIUC_URL_FMT % (datfile)
+    print "GET %s" % url
+    r = requests.get(url)
+
+    if r.status_code == requests.codes.ok:
+        lines = r.text.splitlines()
+    else:
+        raise "Error: %d response from %s" % (r.status_code, url)
+else:
+    with open(datfile) as f:
+        lines = [l.strip() for l in f.readlines()]
+
+for line in lines:
+    if count > 3 and len(line) > 3:
+        xy = [float(i) for i in line.lstrip().rstrip().split(' ')]
+        print xy
+        if len(xy) > 1:
+            xs.append(X_FACTOR * float(xy[0]))
+            ys.append(Y_FACTOR * float(xy[1]))
+    count +=1
 
 # plt.scatter(xs, ys)
 plt.axis('equal')

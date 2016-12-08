@@ -39,20 +39,13 @@ UIUC_URL_FMT='http://m-selig.ae.illinois.edu/ads/coord/%s'
 
 parser = argparse.ArgumentParser()
 parser.add_argument("DAT", help="DAT file or DAT name (if using UIUC download)")
-parser.add_argument("SVG", nargs="?", help="SVG output file (defaults to <DAT>.svg)")
+parser.add_argument("SCAD", nargs="?", help="OpenSCAD output file (defaults to <DAT>.scad)")
 parser.add_argument("-u", "--url", help="Download the specified DAT name from the UIUC Airfoil Database", action="store_true")
 
 args = parser.parse_args()
 
 datfile=args.DAT
-outfile=args.SVG or "%s.svg" % (os.path.splitext(os.path.basename(datfile))[0])
-
-# Amplify coordinates by this amount to make them visible
-FACTOR=600
-
-# Translate all X and Y coordinates by this amount to drop the SVG in from the edge of the document
-XLATE=100
-YLATE=200
+outfile=args.SCAD or "%s.scad" % (os.path.splitext(os.path.basename(datfile))[0])
 
 # counter for the file header
 count = 0
@@ -82,19 +75,17 @@ else:
 # For each line in the file, parse out a X, Y coordinate, amplified by the FACTOR
 # and translated to the XLATE, YLATE offsets.
 # Store each X,Y coordinate as a list of floats, in case we have to do further massaging.
-for line in lines[2:]:
-    if len(line) < 3:
+for line in lines:
+    if re.match('\s*[.0-9]+\s*[.0-9]+\s*', line) is None:
+        continue
+    elif len(line) < 3:
         surfaces.append(current_surface)
         current_surface = []
     else:
-        try:
-            xy = [float(str(i)) for i in re.split("\s*", line) if len(str(i)) > 0]
-        except Exception as e:
-            print("Problem decoding line \"%s\"" % line)
-            raise e
+        xy = [float(str(s)) for s in re.split("\s*", line) if len(str(s)) > 0]
         # print xy
         if len(xy) > 1:
-            current_surface.append((XLATE + FACTOR * float(xy[0]), YLATE -(FACTOR * float(xy[1]))))
+            current_surface.append(xy)
 
 # Cleanup; add the last coordinate set we were working on to the list of coordinate sets.
 surfaces.append(current_surface)
@@ -103,67 +94,27 @@ surfaces.append(current_surface)
 # Start with a copy of the first original surface, intact.
 aggregated_surface = list(surfaces[0])
 
-# Reverse the second set of coordinates and append them to the first.
-# This traces the second line (second surface) backward, starting from a 
-# point where the two surfaces connect on the trailing edge
 if len(surfaces) > 1:
+    # Reverse the second set of coordinates and append them to the first.
+    # This traces the second line (second surface) backward, starting from a 
+    # point where the two surfaces connect on the trailing edge
     for coord in reversed(surfaces[1]):
         aggregated_surface.append(coord)
 
+name = os.path.splitext(os.path.basename(datfile))[0]
 with open(outfile, 'w') as f:
-    f.write("""
-<svg xmlns:dc="http://purl.org/dc/elements/1.1/" 
-     xmlns:cc="http://creativecommons.org/ns#" 
-     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" 
-     xmlns:svg="http://www.w3.org/2000/svg" 
-     xmlns="http://www.w3.org/2000/svg" 
-     xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" 
-     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" 
-     id="svg3039" 
-     version="1.1" 
-     inkscape:version="0.48.4 r9939" 
-     width="1200" 
-     height="900" 
-     sodipodi:docname="%s.svg">
-  <metadata id="metadata3045">
-    <rdf:RDF>
-      <cc:Work rdf:about="">
-        <dc:format>image/svg+xml</dc:format>
-        <dc:type
-           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
-      </cc:Work>
-    </rdf:RDF>
-  </metadata>
-  <defs
-     id="defs3043" />
-  <sodipodi:namedview
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1"
-     objecttolerance="10"
-     gridtolerance="10"
-     guidetolerance="10"
-     inkscape:pageopacity="0"
-     inkscape:pageshadow="2"
-     inkscape:window-width="1590"
-     inkscape:window-height="1014"
-     id="namedview3041"
-     showgrid="false"
-     inkscape:zoom="1"
-     inkscape:cx="216.28659"
-     inkscape:cy="508.45613"
-     inkscape:window-x="0"
-     inkscape:window-y="27"
-     inkscape:window-maximized="0"
-     inkscape:current-layer="svg3039" />
-  <path style="fill:#b3b4d2"
-        d="m %s %s L %s z"
-        id="path1"
-        inkscape:connector-curvature="0"
-        sodipodi:nodetypes="aaaaaaaaaaaaaaaaaaaaaaaaaaaassaaaaaa" />
-
-</svg>
-""" % (os.path.splitext(os.path.basename(datfile))[0], XLATE, YLATE, " L ".join([" ".join([str(val) for val in i]) for i in aggregated_surface])))
+    f.write("// adapted from ")
+    f.write(os.path.basename(datfile))
+    f.write("\n\nmodule %s_airfoil(scale=1){\n    polygon(points=[" % name)
+    first_coord = True
+    for coord in aggregated_surface:
+        if first_coord is True:
+            first_coord = False
+            f.write("\n        ")
+        else:
+            f.write(",\n        ")
+        f.write("[scale * %s, scale * %s]" % (coord[0], coord[1]))
+    
+    f.write("\n    ]);\n}\n\n%s_airfoil(60);" % name)
 
 
