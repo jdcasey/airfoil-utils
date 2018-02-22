@@ -26,7 +26,7 @@ setup(
     zip_safe=True,
     use_2to3=use_2to3,
     name='airfoil-utils',
-    version='0.0.1',
+    version='1.0',
     long_description='Generate printable files for airfoils from UIUC Airfoil database',
     classifiers=[
       "Development Status :: 3 - Alpha",
@@ -39,7 +39,8 @@ setup(
     keywords='airfoil 3d-printing OpenSCAD SVG',
     author='John Casey',
     author_email='jdcasey@commonjava.org',
-    url='https://github.com/Commonjava/airfoil-utils',
+    url='https://github.com/jdcasey/airfoil-utils',
+    download_url='https://github.com/jdcasey/airfoil-utils/archive/1.0.tar.gz',
     license='GPLv3+',
     packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
     install_requires=[
