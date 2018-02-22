@@ -23,6 +23,9 @@ def _aggregate_surface(surfaces):
         for coord in reversed(surfaces[1]):
             aggregated_surface.append(coord)
 
+    # for coord in aggregated_surface:
+    #     print "Aggregation includes point %s" % str(coord)
+
     return aggregated_surface
 
 

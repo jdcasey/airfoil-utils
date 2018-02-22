@@ -48,8 +48,9 @@ def load_surfaces(datfile, url=True):
     # Store each X,Y coordinate as a list of floats, in case we have to do further massaging.
     for line in lines[2:]:
         if len(line) < 3:
-            surfaces.append(current_surface)
-            current_surface = []
+            if len(current_surface) > 0:
+                surfaces.append(current_surface)
+                current_surface = []
         else:
             try:
                 xy = [float(str(i)) for i in re.split("\s*", line) if len(str(i)) > 0]
@@ -61,6 +62,13 @@ def load_surfaces(datfile, url=True):
                 current_surface.append((float(xy[0]), float(xy[1])))
 
     # Cleanup; add the last coordinate set we were working on to the list of coordinate sets.
-    surfaces.append(current_surface)
+    if len(current_surface) > 0:
+        surfaces.append(current_surface)
+
+    # print "Got %s surfaces" % len(surfaces)
+    # print_count = 0
+    # for surface in surfaces:
+    #     print "Surface #%s contains %s points" % (print_count, len(surface))
+    #     print_count = print_count+1
 
     return surfaces
