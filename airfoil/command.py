@@ -20,49 +20,45 @@ DEFAULT_SCALE=600
 DEFAULT_X_TRANSLATE = 100
 DEFAULT_Y_TRANSLATE = 200
 
+def _parse_names(dat, output, output_format):
+    dat = os.path.splitext(os.path.basename(dat))[0]
+    output=output or output_format % dat
+    fname = os.path.splitext(os.path.basename(output))[0]
+
+    return (dat,output,fname)
+
 @click.command()
 @click.argument('DAT')
 @click.option('--output', '-o', help='Output SVG path')
-@click.option('--url', '-u', default=True, help='Download the specified DAT name from the UIUC Airfoil Database before attempting to read it', type=click.BOOL)
-def foil2svg(dat, output, url=True):
-    datfile=dat
-    fname = (os.path.splitext(os.path.basename(datfile))[0])
-    outfile=output or "%s.svg" % fname
-
-    surfaces = data.load_surfaces(datfile, url)
-
-    formats.write_svg(outfile, surfaces, fname)
+@click.option('--database', '-d', default='uiuc', type=click.Choice(['uiuc', 'airfoildb']), help='Specify the online database from which the DAT name will be downloaded')
+def foil2svg(dat, output, database):
+    dat,output,fname=_parse_names(dat, output, "%s.svg")
+    surface_data = data.load_surfaces(dat, database)
+    formats.write_svg(output, surface_data, fname)
 
 @click.command()
 @click.argument('DAT')
 @click.option('--output', '-o', help='Output SCAD path')
-@click.option('--url', '-u', default=True, help='Download the specified DAT name from the UIUC Airfoil Database before attempting to read it', type=click.BOOL)
-def foil2scad(dat, output, url=True, x_translate=100, y_translate=200, scale=600):
-    datfile=dat
-    fname = (os.path.splitext(os.path.basename(datfile))[0])
-    outfile=output or "%s.scad" % fname
-
-    surfaces = data.load_surfaces(datfile, url)
-
-    formats.write_scad(outfile, surfaces, fname)
+@click.option('--database', '-d', default='uiuc', type=click.Choice(['uiuc', 'airfoildb']), help='Specify the online database from which the DAT name will be downloaded')
+def foil2scad(dat, output, database, x_translate=100, y_translate=200, scale=600):
+    dat,output,fname=_parse_names(dat, output, "%s.scad")
+    surface_data = data.load_surfaces(dat, database)
+    formats.write_scad(output, surface_data, fname)
 
 @click.command()
 @click.argument('DAT')
-@click.option('--url', '-u', default=True, help='Download the specified DAT name from the UIUC Airfoil Database before attempting to read it', type=click.BOOL)
+@click.option('--database', '-d', default='uiuc', type=click.Choice(['uiuc', 'airfoildb']), help='Specify the online database from which the DAT name will be downloaded')
 @click.option('--x-translate', '-x', default=DEFAULT_X_TRANSLATE, help='Translate to this X coordinate')
 @click.option('--y-translate', '-y', default=DEFAULT_Y_TRANSLATE, help='Translate to this Y coordinate')
 @click.option('--scale', '-s', default=DEFAULT_SCALE, help='Scale coordinates by this factor')
-def foil2plot(dat, url=True, x_translate=100, y_translate=200, scale=600):
-    datfile=dat
-    fname = (os.path.splitext(os.path.basename(datfile))[0])
-
-    surfaces = data.load_surfaces(datfile, url)
+def foil2plot(dat, database, x_translate=100, y_translate=200, scale=600):
+    surface_data = data.load_surfaces(dat, database)
 
     import matplotlib.pyplot as plt
 
     xs = []
     ys = []
-    for surface in surfaces:
+    for surface in surface_data['surfaces']:
         xs.append(x_translate + scale * surface[0])
         ys.append(y_translate - (scale * surface[1]))
     

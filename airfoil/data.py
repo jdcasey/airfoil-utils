@@ -14,15 +14,21 @@
 
 import requests
 import re
+import os
 
-UIUC_URL_FMT='http://m-selig.ae.illinois.edu/ads/coord/%s'
+DBs={'uiuc': 'http://m-selig.ae.illinois.edu/ads/coord/%s',
+     'airfoildb': 'http://airfoildb.com/airfoils/%s'
+     }
 
-def load_surfaces(datfile, url=True):
-    if url is True:
+def load_surfaces(datfile, database):
+    if os.path.exists(datfile):
+        with open(datfile) as f:
+            lines = [l.strip() for l in f.readlines()]
+    else:
         if not datfile.endswith(".dat"):
             datfile = datfile + ".dat"
 
-        url = UIUC_URL_FMT % (datfile)
+        url = DBs[database] % (datfile)
         print "GET %s" % url
         r = requests.get(url)
 
@@ -30,9 +36,6 @@ def load_surfaces(datfile, url=True):
             lines = r.text.splitlines()
         else:
             raise "Error: %d response from %s" % (r.status_code, url)
-    else:
-        with open(datfile) as f:
-            lines = [l.strip() for l in f.readlines()]
 
     # counter for the file header
     count = 0
@@ -53,7 +56,7 @@ def load_surfaces(datfile, url=True):
                 current_surface = []
         else:
             try:
-                xy = [float(str(i)) for i in re.split("\s*", line) if len(str(i)) > 0]
+                xy = [float(str(i)) for i in re.split("\s*,?\s*", line) if len(str(i)) > 0]
             except Exception as e:
                 print("Problem decoding line \"%s\"" % line)
                 raise e
@@ -71,4 +74,4 @@ def load_surfaces(datfile, url=True):
     #     print "Surface #%s contains %s points" % (print_count, len(surface))
     #     print_count = print_count+1
 
-    return surfaces
+    return {'surfaces': surfaces, 'url': url}

@@ -12,15 +12,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-def _aggregate_surface(surfaces):
+def _aggregate_surface(data):
     # Now, create an aggregated surface.
     # Start with a copy of the first original surface, intact.
-    aggregated_surface = list(surfaces[0])
-    if len(surfaces) > 1:
+    aggregated_surface = list(data['surfaces'][0])
+    if len(data['surfaces']) > 1:
         # Reverse the second set of coordinates and append them to the first.
         # This traces the second line (second surface) backward, starting from a 
         # point where the two surfaces connect on the trailing edge
-        for coord in reversed(surfaces[1]):
+        for coord in reversed(data['surfaces'][1]):
             aggregated_surface.append(coord)
 
     # for coord in aggregated_surface:
@@ -29,13 +29,14 @@ def _aggregate_surface(surfaces):
     return aggregated_surface
 
 
-def write_scad(outfile, surfaces, fname):
+def write_scad(outfile, data, fname):
     with open(outfile, 'w') as f:
         f.write("// adapted from ")
         f.write(fname)
+        f.write(" (%s)" % data['url'])
         f.write("\n\nmodule %s_airfoil(scale=100){\n    polygon(points=[" % fname)
 
-        aggregated_surface = _aggregate_surface(surfaces)
+        aggregated_surface = _aggregate_surface(data)
 
         first_coord = True
         for coord in aggregated_surface:
@@ -49,8 +50,8 @@ def write_scad(outfile, surfaces, fname):
         f.write("\n    ]);\n}\n\n%s_airfoil();" % fname)
 
 
-def write_svg(outfile, surfaces, fname):
-    aggregated_surface = _aggregate_surface(surfaces)
+def write_svg(outfile, data, fname):
+    aggregated_surface = _aggregate_surface(data)
 
     with open(outfile, 'w') as f:
         f.write("""
@@ -66,7 +67,7 @@ def write_svg(outfile, surfaces, fname):
      inkscape:version="0.48.4 r9939" 
      width="1200" 
      height="900" 
-     sodipodi:docname="%s.svg">
+     sodipodi:docname="%(fname)s.svg">
   <metadata id="metadata3045">
     <rdf:RDF>
       <cc:Work rdf:about="">
@@ -79,6 +80,7 @@ def write_svg(outfile, surfaces, fname):
   </metadata>
   <defs
      id="defs3043" />
+  <!-- Adapted from %(fname)s (%(url)s) -->
   <sodipodi:namedview
      pagecolor="#ffffff"
      bordercolor="#666666"
@@ -100,11 +102,12 @@ def write_svg(outfile, surfaces, fname):
      inkscape:window-maximized="0"
      inkscape:current-layer="svg3039" />
   <path style="fill:#b3b4d2"
-        d="m 0 0 L %s z"
+        d="m 0 0 L %(points)s z"
         id="path1"
         inkscape:connector-curvature="0"
         sodipodi:nodetypes="aaaaaaaaaaaaaaaaaaaaaaaaaaaassaaaaaa" />
 
 </svg>
-""" % (fname, 
-       " L ".join([" ".join([str(val) for val in i]) for i in aggregated_surface])))
+""" % ({'fname':fname,
+        'url': data['url'], 
+        'points': " L ".join([" ".join([str(val) for val in i]) for i in aggregated_surface])}))
